@@ -1,4 +1,3 @@
-
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -13,6 +12,10 @@ class InsuranceAnalysis:
     def load_data(self):
         """Load the dataset and return a copy"""
         return self.df
+
+    def descriptive_statistics(self):
+        """Calculate descriptive statistics for numerical features."""
+        return self.df.describe().T
 
     def check_missing_values(self):
         """Check for missing values in the dataset."""
@@ -66,6 +69,4 @@ class InsuranceAnalysis:
             print(f"Error converting dates: {str(e)}")
             raise
 
-
-
-
+    
