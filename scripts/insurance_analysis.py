@@ -69,4 +69,97 @@ class InsuranceAnalysis:
             print(f"Error converting dates: {str(e)}")
             raise
 
-    
+    def univariate_analysis(self):
+        """Plot histograms for numerical columns and bar charts for categorical columns."""
+        numerical_cols = self.df.select_dtypes(include=['float64', 'int64']).columns
+        categorical_cols = self.df.select_dtypes(include=['object', 'category']).columns
+
+        # Plot histograms for numerical columns
+        for col in numerical_cols:
+            plt.figure(figsize=(8, 5))
+            sns.histplot(self.df[col].dropna(), kde=True, bins=30, color='blue')
+            plt.title(f'Distribution of {col}')
+            plt.xlabel(col)
+            plt.ylabel('Frequency')
+            plt.show()
+
+        # Plot bar charts for categorical columns
+        for col in categorical_cols:
+            plt.figure(figsize=(8, 5))
+            sns.countplot(data=self.df, y=col, palette='viridis', order=self.df[col].value_counts().index)
+            plt.title(f'Distribution of {col}')
+            plt.xlabel('Count')
+            plt.ylabel(col)
+            plt.show()
+
+    def bivariate_analysis(self):
+        """Explore correlations and associations between key variables."""
+        plt.figure(figsize=(10, 6))
+        sns.scatterplot(data=self.df, x='TotalPremium', y='TotalClaim', hue='ZipCode', palette='coolwarm')
+        plt.title('Total Premium vs Total Claim by ZipCode')
+        plt.xlabel('Total Premium')
+        plt.ylabel('Total Claim')
+        plt.show()
+
+        # Correlation matrix
+        correlation_matrix = self.df.corr()
+        plt.figure(figsize=(12, 8))
+        sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', vmin=-1, vmax=1)
+        plt.title('Correlation Matrix')
+        plt.show()
+
+    def data_comparison(self):
+        """Compare trends over geography."""
+        grouped_data = self.df.groupby('ZipCode')[['TotalPremium', 'TotalClaim']].mean().reset_index()
+        plt.figure(figsize=(10, 6))
+        sns.lineplot(data=grouped_data, x='ZipCode', y='TotalPremium', label='Average Premium')
+        sns.lineplot(data=grouped_data, x='ZipCode', y='TotalClaim', label='Average Claim')
+        plt.title('Trends in Premium and Claim by ZipCode')
+        plt.xlabel('ZipCode')
+        plt.ylabel('Average Value')
+        plt.legend()
+        plt.show()
+
+    def detect_outliers(self):
+        """Use box plots to detect outliers in numerical data."""
+        numerical_cols = self.df.select_dtypes(include=['float64', 'int64']).columns
+        for col in numerical_cols:
+            plt.figure(figsize=(8, 5))
+            sns.boxplot(data=self.df, y=col, palette='Set2')
+            plt.title(f'Outlier Detection for {col}')
+            plt.ylabel(col)
+            plt.show()
+
+    def creative_visualizations(self):
+        """Produce three creative and beautiful plots."""
+        # Example 1: Premium Distribution by Cover Type
+        plt.figure(figsize=(10, 6))
+        sns.boxplot(data=self.df, x='CoverType', y='TotalPremium', palette='coolwarm')
+        plt.title('Premium Distribution by Cover Type')
+        plt.xlabel('Cover Type')
+        plt.ylabel('Total Premium')
+        plt.show()
+
+        # Example 2: Claims vs Premium Heatmap
+        pivot_table = self.df.pivot_table(values='TotalClaim', index='AutoMake', columns='CoverType', aggfunc='mean')
+        plt.figure(figsize=(12, 8))
+        sns.heatmap(pivot_table, annot=True, cmap='YlGnBu', fmt='.2f')
+        plt.title('Claims vs Cover Type by Auto Make')
+        plt.xlabel('Cover Type')
+        plt.ylabel('Auto Make')
+        plt.show()
+
+        # Example 3: Vehicle Introduction Date Trend
+        self.df['VehicleIntroYear'] = self.df['VehicleIntroDate'].dt.year
+        plt.figure(figsize=(10, 6))
+        sns.lineplot(data=self.df, x='VehicleIntroYear', y='TotalPremium', label='Total Premium')
+        sns.lineplot(data=self.df, x='VehicleIntroYear', y='TotalClaim', label='Total Claim')
+        plt.title('Trends Over Vehicle Introduction Years')
+        plt.xlabel('Vehicle Introduction Year')
+        plt.ylabel('Value')
+        plt.legend()
+        plt.show()
+
+
+
+
