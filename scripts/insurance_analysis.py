@@ -58,16 +58,33 @@ class InsuranceAnalysis:
 
 
 
-    def date_conversion(self):
+    def data_conversion(self):
         """Convert date columns to datetime format."""
         try:
-            self.df['VehicleIntroDate'] = pd.to_datetime(self.df['VehicleIntroDate'], errors='coerce').dt.to_period('M')
+            # Convert VehicleIntroDate with month/year format
+            self.df['VehicleIntroDate'] = pd.to_datetime(
+                self.df['VehicleIntroDate'],
+                format='%m/%Y',
+                errors='coerce'
+            ).dt.to_period('M')
+
+            # Convert RegistrationYear to numeric
             self.df['RegistrationYear'] = pd.to_numeric(self.df['RegistrationYear'], errors='coerce').astype('Int64')
-            self.df['TransactionMonth'] = pd.to_datetime(self.df['TransactionMonth'], errors='coerce')
+
+            # Convert TransactionMonth to datetime
+            self.df['TransactionMonth'] = pd.to_datetime(
+                self.df['TransactionMonth'],
+                errors='coerce'
+            )
+            # Handle mixed-type columns if necessary
+            self.df['CapitalOutstanding'] = pd.to_numeric(self.df['CapitalOutstanding'], errors='coerce')
+
+
             return self.df
         except Exception as e:
             print(f"Error converting dates: {str(e)}")
             raise
+
 
     def univariate_analysis(self):
         """Plot histograms for numerical columns and bar charts for categorical columns."""
@@ -75,91 +92,62 @@ class InsuranceAnalysis:
         categorical_cols = self.df.select_dtypes(include=['object', 'category']).columns
 
         # Plot histograms for numerical columns
-        for col in numerical_cols:
-            plt.figure(figsize=(8, 5))
-            sns.histplot(self.df[col].dropna(), kde=True, bins=30, color='blue')
-            plt.title(f'Distribution of {col}')
-            plt.xlabel(col)
-            plt.ylabel('Frequency')
+        for i in range(0, len(numerical_cols), 3):
+            fig, axes = plt.subplots(1, min(3, len(numerical_cols) - i), figsize=(20, 5))
+            if len(numerical_cols) - i == 1:
+                axes = [axes]
+            for j, col in enumerate(numerical_cols[i:i+3]):
+                sns.histplot(data=self.df[col].dropna(), kde=True, bins=30, color='blue', ax=axes[j])
+                axes[j].set_title(f'Distribution of {col}')
+                axes[j].set_xlabel(col)
+                axes[j].set_ylabel('Frequency')
+            plt.tight_layout()
             plt.show()
 
         # Plot bar charts for categorical columns
-        for col in categorical_cols:
-            plt.figure(figsize=(8, 5))
-            sns.countplot(data=self.df, y=col, palette='viridis', order=self.df[col].value_counts().index)
-            plt.title(f'Distribution of {col}')
-            plt.xlabel('Count')
-            plt.ylabel(col)
+        for i in range(0, len(categorical_cols), 3):
+            fig, axes = plt.subplots(1, min(3, len(categorical_cols) - i), figsize=(20, 5))
+            if len(categorical_cols) - i == 1:
+                axes = [axes]
+            for j, col in enumerate(categorical_cols[i:i+3]):
+                sns.countplot(data=self.df, y=col, palette='viridis',
+                            order=self.df[col].value_counts().index, ax=axes[j])
+                axes[j].set_title(f'Distribution of {col}')
+                axes[j].set_xlabel('Count')
+                axes[j].set_ylabel(col)
+            plt.tight_layout()
             plt.show()
 
     def bivariate_analysis(self):
         """Explore correlations and associations between key variables."""
+        # Scatter plot of key numeric relationships
         plt.figure(figsize=(10, 6))
-        sns.scatterplot(data=self.df, x='TotalPremium', y='TotalClaim', hue='ZipCode', palette='coolwarm')
-        plt.title('Total Premium vs Total Claim by ZipCode')
-        plt.xlabel('Total Premium')
-        plt.ylabel('Total Claim')
+        sns.scatterplot(data=self.df, x='CalculatedPremiumPerTerm', y='TotalClaims', hue='CoverType', palette='coolwarm')
+        plt.title('Premium per Term vs Total Claims by Cover Type')
+        plt.xlabel('Calculated Premium Per Term')
+        plt.ylabel('Total Claims')
         plt.show()
 
-        # Correlation matrix
-        correlation_matrix = self.df.corr()
+        # Correlation matrix for key numeric variables
+        numeric_cols = ['CalculatedPremiumPerTerm', 'TotalClaims', 'TotalPremium', 'SumInsured', 'CapitalOutstanding',
+                         'kilowatts', 'cubiccapacity', 'Cylinders']
+        correlation_matrix = self.df[numeric_cols].corr()
         plt.figure(figsize=(12, 8))
         sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', vmin=-1, vmax=1)
-        plt.title('Correlation Matrix')
+        plt.title('Correlation Matrix of Key Variables')
         plt.show()
 
-    def data_comparison(self):
-        """Compare trends over geography."""
-        grouped_data = self.df.groupby('ZipCode')[['TotalPremium', 'TotalClaim']].mean().reset_index()
+        # Box plot showing claims distribution by vehicle type
+        plt.figure(figsize=(12, 6))
+        sns.boxplot(data=self.df, x='VehicleType', y='TotalClaims', palette='viridis')
+        plt.xticks(rotation=45)
+        plt.title('Claims Distribution by Vehicle Type')
+        plt.show()
+
+        # Premium distribution by cover category
         plt.figure(figsize=(10, 6))
-        sns.lineplot(data=grouped_data, x='ZipCode', y='TotalPremium', label='Average Premium')
-        sns.lineplot(data=grouped_data, x='ZipCode', y='TotalClaim', label='Average Claim')
-        plt.title('Trends in Premium and Claim by ZipCode')
-        plt.xlabel('ZipCode')
-        plt.ylabel('Average Value')
-        plt.legend()
+        sns.violinplot(data=self.df, x='CoverCategory', y='CalculatedPremiumPerTerm')
+        plt.xticks(rotation=45)
+        plt.title('Premium Distribution by Cover Category')
         plt.show()
-
-    def detect_outliers(self):
-        """Use box plots to detect outliers in numerical data."""
-        numerical_cols = self.df.select_dtypes(include=['float64', 'int64']).columns
-        for col in numerical_cols:
-            plt.figure(figsize=(8, 5))
-            sns.boxplot(data=self.df, y=col, palette='Set2')
-            plt.title(f'Outlier Detection for {col}')
-            plt.ylabel(col)
-            plt.show()
-
-    def creative_visualizations(self):
-        """Produce three creative and beautiful plots."""
-        # Example 1: Premium Distribution by Cover Type
-        plt.figure(figsize=(10, 6))
-        sns.boxplot(data=self.df, x='CoverType', y='TotalPremium', palette='coolwarm')
-        plt.title('Premium Distribution by Cover Type')
-        plt.xlabel('Cover Type')
-        plt.ylabel('Total Premium')
-        plt.show()
-
-        # Example 2: Claims vs Premium Heatmap
-        pivot_table = self.df.pivot_table(values='TotalClaim', index='AutoMake', columns='CoverType', aggfunc='mean')
-        plt.figure(figsize=(12, 8))
-        sns.heatmap(pivot_table, annot=True, cmap='YlGnBu', fmt='.2f')
-        plt.title('Claims vs Cover Type by Auto Make')
-        plt.xlabel('Cover Type')
-        plt.ylabel('Auto Make')
-        plt.show()
-
-        # Example 3: Vehicle Introduction Date Trend
-        self.df['VehicleIntroYear'] = self.df['VehicleIntroDate'].dt.year
-        plt.figure(figsize=(10, 6))
-        sns.lineplot(data=self.df, x='VehicleIntroYear', y='TotalPremium', label='Total Premium')
-        sns.lineplot(data=self.df, x='VehicleIntroYear', y='TotalClaim', label='Total Claim')
-        plt.title('Trends Over Vehicle Introduction Years')
-        plt.xlabel('Vehicle Introduction Year')
-        plt.ylabel('Value')
-        plt.legend()
-        plt.show()
-
-
-
 
