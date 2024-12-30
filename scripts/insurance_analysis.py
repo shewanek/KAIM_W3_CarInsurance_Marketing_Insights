@@ -3,6 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
 import scipy.stats as stats
+
 class InsuranceAnalysis:
     def __init__(self, df):
         """Initialize the analysis class"""
@@ -120,17 +121,24 @@ class InsuranceAnalysis:
 
     def bivariate_analysis(self):
         """Explore correlations and associations between key variables."""
+        # Display descriptive statistics for numerical columns
+        numeric_cols = ['CalculatedPremiumPerTerm', 'TotalClaims', 'TotalPremium', 'SumInsured', 'CapitalOutstanding',
+                         'kilowatts', 'cubiccapacity', 'Cylinders']
+        # print("Descriptive Statistics for Numerical Variables:")
+        # print(self.df[numeric_cols].describe())
+
         # Scatter plot of key numeric relationships
         plt.figure(figsize=(10, 6))
-        sns.scatterplot(data=self.df, x='CalculatedPremiumPerTerm', y='TotalClaims', hue='CoverType', palette='coolwarm')
+        scatter = sns.scatterplot(data=self.df, x='CalculatedPremiumPerTerm', y='TotalClaims', hue='CoverType', palette='coolwarm')
         plt.title('Premium per Term vs Total Claims by Cover Type')
         plt.xlabel('Calculated Premium Per Term')
         plt.ylabel('Total Claims')
+        # Place legend outside plot to avoid slow "best" location calculation
+        scatter.legend(bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.tight_layout()
         plt.show()
 
         # Correlation matrix for key numeric variables
-        numeric_cols = ['CalculatedPremiumPerTerm', 'TotalClaims', 'TotalPremium', 'SumInsured', 'CapitalOutstanding',
-                         'kilowatts', 'cubiccapacity', 'Cylinders']
         correlation_matrix = self.df[numeric_cols].corr()
         plt.figure(figsize=(12, 8))
         sns.heatmap(correlation_matrix, annot=True, cmap='coolwarm', fmt='.2f', vmin=-1, vmax=1)
@@ -150,4 +158,69 @@ class InsuranceAnalysis:
         plt.xticks(rotation=45)
         plt.title('Premium Distribution by Cover Category')
         plt.show()
+
+    def data_comparison(self):
+        """Compare trends over geography."""
+        grouped_data = self.df.groupby('PostalCode')[['TotalPremium', 'TotalClaims']].mean().reset_index()
+        plt.figure(figsize=(10, 6))
+        sns.lineplot(data=grouped_data, x='PostalCode', y='TotalPremium', label='Average Premium')
+        sns.lineplot(data=grouped_data, x='PostalCode', y='TotalClaims', label='Average Claims')
+        plt.title('Trends in Premium and Claims by Postal Code')
+        plt.xlabel('Postal Code')
+        plt.ylabel('Average Value')
+        plt.legend()
+        plt.show()
+
+    def detect_outliers(self):
+        """Use box plots to detect outliers in numerical data."""
+        numerical_cols = self.df.select_dtypes(include=['float64', 'int64']).columns
+        for i in range(0, len(numerical_cols), 3):
+            fig, axes = plt.subplots(1, min(3, len(numerical_cols) - i), figsize=(20, 5))
+            if len(numerical_cols) - i == 1:
+                axes = [axes]
+            for j, col in enumerate(numerical_cols[i:i+3]):
+                sns.boxplot(data=self.df, y=col, palette='Set2', ax=axes[j])
+                axes[j].set_title(f'Outlier Detection for {col}')
+                axes[j].set_ylabel(col)
+            plt.tight_layout()
+            plt.show()
+
+    
+    def creative_visualizations(self):
+        """Produce three creative and beautiful plots."""
+
+        # Example 3: Claims Distribution by Vehicle Age
+        # Use pd.Timestamp.now() instead of pd.datetime.now() for better performance and consistency
+        self.df['VehicleAge'] = pd.Timestamp.now().year - self.df['RegistrationYear']
+        plt.figure(figsize=(12, 6))
+        sns.violinplot(data=self.df, x='VehicleAge', y='TotalClaims', palette='viridis')
+        plt.title('Claims Distribution by Vehicle Age')
+        plt.xlabel('Vehicle Age (Years)')
+        plt.ylabel('Total Claims')
+        plt.xticks(rotation=45)
+        plt.show()
+
+        # Use pd.Timestamp.now() instead of pd.datetime.now() for better performance and consistency
+        self.df['VehicleAge'] = pd.Timestamp.now().year - self.df['RegistrationYear']
+        plt.figure(figsize=(12, 6))
+        sns.violinplot(data=self.df, x='VehicleAge', y='TotalPremium', palette='viridis')
+        plt.title('TotalPremium Distribution by Vehicle Age')
+        plt.xlabel('Vehicle Age (Years)')
+        plt.ylabel('Total Premium')
+        plt.xticks(rotation=45)
+        plt.show()
+
+        # Example 3: Vehicle Introduction Date Trend
+        self.df['VehicleIntroYear'] = self.df['VehicleIntroDate'].dt.year
+        plt.figure(figsize=(10, 6))
+        sns.lineplot(data=self.df, x='VehicleIntroYear', y='TotalPremium', label='Total Premium')
+        sns.lineplot(data=self.df, x='VehicleIntroYear', y='TotalClaims', label='Total Claims')
+        plt.title('Trends Over Vehicle Introduction Years')
+        plt.xlabel('Vehicle Introduction Year')
+        plt.ylabel('Value')
+        plt.legend()
+        plt.show()
+
+
+
 
